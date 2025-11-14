@@ -1,7 +1,9 @@
+import logging
 import os
 
 import sentry_sdk
 from dotenv import load_dotenv
+from sentry_sdk.integrations.logging import EventHandler
 
 load_dotenv()
 
@@ -13,6 +15,19 @@ sentry_sdk.init(
     traces_sample_rate=1.0,
 )
 
+# Create the Sentry logging handler
+sentry_handler = EventHandler(level=logging.ERROR)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.StreamHandler(),
+        sentry_handler,  # <--- sends errors from logger to Sentry
+    ],
+)
+logger = logging.getLogger("main.py")
+
 
 # --- Test Error ---
 def trigger_test_error():
@@ -20,7 +35,7 @@ def trigger_test_error():
         # This will fail on purpose
         1 / 0  # type: ignore
     except Exception as e:
-        sentry_sdk.capture_exception(e)
+        logger.error(e)
         print("Test error sent to Sentry.")
 
 
